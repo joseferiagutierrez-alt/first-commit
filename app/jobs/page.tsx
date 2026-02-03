@@ -86,6 +86,7 @@ export default function JobsPage() {
   const [loading, setLoading] = useState(true);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [userPath, setUserPath] = useState<TechPath | null>(null);
+  const [isVerified, setIsVerified] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   
   // Modal State
@@ -99,9 +100,10 @@ export default function JobsPage() {
       
       if (user) {
         setUserId(user.id);
-        const { data: profile } = await supabase.from('profiles').select('tech_path').eq('id', user.id).single();
+        const { data: profile } = await supabase.from('profiles').select('tech_path, is_verified').eq('id', user.id).single();
         if (profile) {
           setUserPath(profile.tech_path);
+          setIsVerified(profile.is_verified || false);
         }
 
         // Fetch jobs

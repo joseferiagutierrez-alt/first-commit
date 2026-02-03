@@ -14,7 +14,9 @@ import {
   ShieldCheck, 
   Bug,
   Map,
-  TrendingUp
+  TrendingUp,
+  Bell,
+  Eye
 } from "lucide-react";
 import Link from "next/link";
 
@@ -55,6 +57,7 @@ const MOCK_JOBS: JobOffer[] = [
 
 export default function DashboardPage() {
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [profileViews, setProfileViews] = useState<{company_name: string, viewed_at: string}[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -71,6 +74,18 @@ export default function DashboardPage() {
         
         if (data && !error) {
           setProfile(data as Profile);
+        }
+
+        // Fetch profile views
+        const { data: views } = await supabase
+          .from('profile_views')
+          .select('company_name, viewed_at')
+          .eq('candidate_id', user.id)
+          .order('viewed_at', { ascending: false })
+          .limit(5);
+          
+        if (views) {
+          setProfileViews(views);
         }
       }
       setLoading(false);
