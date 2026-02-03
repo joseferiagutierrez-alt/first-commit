@@ -72,6 +72,37 @@ create table public.jobs (
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
+-- 5.1 TABLA TEST_RESULTS
+create table public.test_results (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  test_type text not null, -- 'quiz' or 'terminal'
+  score integer not null,
+  passed boolean default false,
+  details jsonb default '{}'::jsonb,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- 5.2 TABLA JOB_APPLICATIONS
+create table public.job_applications (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  job_id uuid references public.jobs(id) on delete cascade not null,
+  status text default 'pending',
+  cover_letter text,
+  applied_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  unique(user_id, job_id)
+);
+
+-- 5.3 TABLA PROFILE_VIEWS (Notifications)
+create table public.profile_views (
+  id uuid default uuid_generate_v4() primary key,
+  candidate_id uuid references public.profiles(id) on delete cascade not null,
+  company_name text not null,
+  viewer_id uuid references auth.users(id) on delete set null,
+  viewed_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
 -- 6. CONFIGURACIÓN DE SEGURIDAD (RLS)
 
 -- Habilitar RLS en todas las tablas
@@ -80,6 +111,8 @@ alter table public.portfolio_projects enable row level security;
 alter table public.certifications enable row level security;
 alter table public.jobs enable row level security;
 alter table public.test_results enable row level security;
+alter table public.job_applications enable row level security;
+alter table public.profile_views enable row level security;
 
 -- Políticas para PROFILES
 create policy "Public profiles are viewable by everyone"
@@ -146,6 +179,15 @@ create policy "Users can view their own applications"
 create policy "Users can apply to jobs"
   on public.job_applications for insert
   with check ( auth.uid() = user_id );
+
+-- Políticas para PROFILE_VIEWS
+create policy "Users can view their own profile views"
+  on public.profile_views for select
+  using ( auth.uid() = candidate_id );
+
+create policy "Anyone can insert profile views"
+  on public.profile_views for insert
+  with check ( true );
 
 -- TRIGGER AUTOMÁTICO PARA CREAR PERFIL AL REGISTRARSE
 -- Esto asegura que cada usuario en auth.users tenga una entrada en public.profiles

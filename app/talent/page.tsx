@@ -127,6 +127,21 @@ export default function TalentPage() {
     return colors[path] || colors.dev;
   };
 
+  const handleContact = async (candidateId: string, candidateName: string) => {
+    try {
+      const supabase = createClient();
+      // Track the view/contact so it appears on the candidate's dashboard
+      await supabase.from('profile_views').insert({
+        candidate_id: candidateId,
+        company_name: "Tech Recruiter", // Simulated company name
+        viewed_at: new Date().toISOString()
+      });
+    } catch (err) {
+      console.error("Error tracking contact:", err);
+      // Fail silently so mailto still works
+    }
+  };
+
   const filteredCandidates = candidates.filter(c => {
     if (filterPath !== 'all' && c.tech_path !== filterPath) return false;
     if (filterVerified && !c.is_verified) return false;
