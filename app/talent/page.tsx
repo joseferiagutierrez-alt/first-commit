@@ -13,8 +13,7 @@ import {
   Palette, 
   ShieldCheck, 
   Bug, 
-  Briefcase,
-  ArrowRight
+  Briefcase 
 } from "lucide-react";
 import Link from "next/link";
 

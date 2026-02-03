@@ -103,42 +103,48 @@ export default function DashboardPage() {
     fetchProfile();
   }, []);
 
-  // Función para Guardar Cambios (Incluyendo el Rol) 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push("/"); // Redirige al Home
+    router.refresh(); // Refresca para limpiar estado
+  };
+
+  // Función para Guardar Cambios (Incluyendo el Rol)
   const handleSaveProfile = async () => { 
     setSaving(true); 
     
-    if (!formData || !profile) return;
+    if (!formData || !profile) {
+      setSaving(false);
+      return;
+    }
 
-    // Validar que haya un tech_path 
-    if (!formData.tech_path) { 
-        alert("Por favor selecciona una especialidad."); 
+    try { 
+        const { error } = await supabase 
+          .from('profiles') 
+          .update({ 
+            full_name: formData.full_name, 
+            bio: formData.bio || '', // Asegura que no sea null 
+            job_title: formData.job_title || '', 
+            location: formData.location || '', 
+            github_url: formData.github_url || '', 
+            linkedin_url: formData.linkedin_url || '', 
+            website_url: formData.website_url || '', 
+            tech_path: formData.tech_path || 'dev' 
+          }) 
+          .eq('id', profile.id); 
+
+        if (error) throw error; 
+
+        setProfile(formData); 
+        setIsEditing(false); 
+        alert("¡Perfil actualizado con éxito!"); 
+        
+    } catch (error: any) { 
+        console.error("Error guardando:", error); 
+        alert(`Error al guardar: ${error.message || "Inténtalo de nuevo"}`); 
+    } finally { 
         setSaving(false); 
-        return; 
     } 
-
-    const { error } = await supabase 
-      .from('profiles') 
-      .update({ 
-        full_name: formData.full_name, 
-        job_title: formData.job_title,
-        location: formData.location,
-        bio: formData.bio, 
-        tech_path: formData.tech_path,
-        github_url: formData.github_url,
-        linkedin_url: formData.linkedin_url,
-        portfolio_url: formData.portfolio_url || formData.website_url 
-      }) 
-      .eq('id', profile.id); 
-
-    if (!error) { 
-      setProfile(formData); 
-      setIsEditing(false); 
-      window.location.reload(); 
-    } else { 
-      console.error(error); 
-      alert("Error al guardar perfil"); 
-    } 
-    setSaving(false); 
   };
 
   if (loading) {
@@ -232,23 +238,21 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      {/* Header */}
-      <header className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-md sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="h-8 w-8 bg-gradient-to-tr from-blue-500 to-purple-500 rounded-lg flex items-center justify-center font-bold">
-              FC
-            </div>
-            <h1 className="text-xl font-semibold">Dashboard</h1>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="text-gray-400 text-sm hidden sm:block">Welcome back, {profile.full_name || 'Candidate'}</span>
-            <div className="h-8 w-8 bg-gray-700 rounded-full flex items-center justify-center text-sm font-medium">
-              {(profile.full_name?.[0] || 'U').toUpperCase()}
-            </div>
-          </div>
+      {/* Navbar */}
+      <nav className="bg-white border-b px-6 py-4 flex justify-between items-center sticky top-0 z-10 shadow-sm">
+        <Link href="/" className="font-bold text-xl text-blue-600 flex items-center gap-2 hover:opacity-80 transition-opacity">
+          FirstCommit <span className="text-xs bg-slate-100 text-slate-500 px-2 py-1 rounded-full">BETA</span>
+        </Link>
+        <div className="flex items-center gap-4">
+            <Link href="/" className="text-sm font-medium text-slate-500 hover:text-slate-900">Ir al Inicio</Link>
+            <button
+              onClick={handleSignOut}
+              className="flex items-center gap-2 text-sm text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 px-3 py-2 rounded-lg transition-colors"
+            >
+              <LogOut size={16} /> Cerrar Sesión
+            </button>
         </div>
-      </header>
+      </nav>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         
