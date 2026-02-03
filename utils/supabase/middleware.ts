@@ -41,8 +41,10 @@ export const updateSession = async (request: NextRequest) => {
 
   if (
     !user &&
-    !request.nextUrl.pathname.startsWith("/") &&
-    !request.nextUrl.pathname.startsWith("/auth")
+    !request.nextUrl.pathname.startsWith("/auth") &&
+    request.nextUrl.pathname !== "/" &&
+    !request.nextUrl.pathname.startsWith("/_next") &&
+    !request.nextUrl.pathname.includes(".") // Excluir archivos estáticos con extensión
   ) {
     // Si no hay usuario y trata de acceder a una ruta protegida (que no sea auth o landing)
     // Redirigir a login
