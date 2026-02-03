@@ -11,7 +11,9 @@ import {
   CheckCircle2, 
   X,
   Building2,
-  Filter
+  Filter,
+  ArrowRight,
+  Terminal
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
