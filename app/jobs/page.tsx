@@ -215,75 +215,84 @@ export default function JobsPage() {
     return 0;
   });
 
-  if (loading) return <div className="min-h-screen bg-black text-white flex items-center justify-center">Loading...</div>;
+  if (loading) return <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center font-mono">Loading job_data...</div>;
 
   return (
-    <div className="min-h-screen bg-black text-white p-6">
+    <div className="min-h-screen bg-slate-950 text-slate-200 p-6 font-sans selection:bg-blue-500/30">
+      {/* Background Pattern */}
+      <div className="fixed inset-0 -z-10 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+
       <div className="max-w-7xl mx-auto">
-        <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <header className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-800 pb-8">
           <div>
-            <h1 className="text-3xl font-bold flex items-center gap-3">
-              <Briefcase className="text-blue-500" />
+            <h1 className="text-4xl font-bold flex items-center gap-3 tracking-tight text-white">
+              <div className="bg-blue-500/10 p-2 rounded-lg border border-blue-500/20">
+                <Briefcase className="text-blue-500 w-6 h-6" />
+              </div>
               Job Board
               {isVerified && (
-                <div className="bg-blue-500/10 border border-blue-500/50 p-1.5 rounded-full" title="Verified Candidate">
-                  <CheckCircle2 size={16} className="text-blue-400" />
+                <div className="bg-green-500/10 border border-green-500/50 px-2 py-0.5 rounded text-xs font-mono text-green-400 flex items-center gap-1">
+                  <CheckCircle2 size={12} />
+                  VERIFIED_CANDIDATE
                 </div>
               )}
             </h1>
-            <p className="text-gray-400 mt-2">
-              Showing {jobs.length} open positions. 
-              {userPath && <span className="text-blue-400"> Prioritizing {userPath} roles.</span>}
+            <p className="text-slate-400 mt-2 font-mono text-sm">
+              <span className="text-blue-500">$</span> ls -la ./open_positions --filter={userPath || 'all'}
             </p>
           </div>
-          <button className="flex items-center gap-2 px-4 py-2 bg-gray-900 rounded-lg border border-gray-700 hover:bg-gray-800">
-            <Filter size={18} />
-            Filters
+          <button className="flex items-center gap-2 px-4 py-2 bg-slate-900 rounded-lg border border-slate-700 hover:border-blue-500/50 hover:bg-slate-800 transition-all text-sm font-mono group">
+            <Filter size={16} className="text-slate-400 group-hover:text-blue-400" />
+            configure_filters()
           </button>
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredJobs.map((job) => (
-            <div key={job.id} className="bg-gray-900/50 border border-gray-800 rounded-xl p-6 hover:border-gray-600 transition-all group relative">
+            <div key={job.id} className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 hover:border-blue-500/30 hover:shadow-[0_0_20px_rgba(37,99,235,0.1)] transition-all group relative overflow-hidden backdrop-blur-sm">
+              {/* Card Decoration */}
+              <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/5 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-150"></div>
+
               {userPath && job.tech_path === userPath && (
-                <div className="absolute top-4 right-4 text-blue-500">
-                  <CheckCircle2 size={20} />
+                <div className="absolute top-4 right-4 text-blue-500 animate-in fade-in zoom-in duration-300">
+                  <div className="bg-blue-500/10 p-1 rounded border border-blue-500/20">
+                    <CheckCircle2 size={16} />
+                  </div>
                 </div>
               )}
               
-              <div className="mb-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="p-2 bg-gray-800 rounded-lg">
-                    <Building2 size={20} className="text-gray-400" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-lg leading-tight group-hover:text-blue-400 transition-colors">
-                      {job.title}
-                    </h3>
-                    <p className="text-sm text-gray-500">{job.company_name || 'Tech Company'}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-3 mb-6">
-                <div className="flex items-center gap-2 text-sm text-gray-300">
-                  <MapPin size={16} className="text-gray-500" />
-                  <span className="capitalize">{job.location_type}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-gray-300">
-                  <Euro size={16} className="text-gray-500" />
-                  <span>{job.salary_min / 1000}k - {job.salary_max / 1000}k EUR</span>
+              <div className="mb-5 relative z-10">
+                <div className="flex items-start justify-between mb-2">
+                    <div className="p-2.5 bg-slate-800/50 rounded-lg border border-slate-700/50 group-hover:border-blue-500/20 transition-colors">
+                        <Building2 size={20} className="text-slate-400 group-hover:text-blue-400 transition-colors" />
+                    </div>
                 </div>
                 
-                <div className="flex flex-wrap gap-2 mt-3">
+                <h3 className="font-bold text-xl leading-tight text-slate-100 group-hover:text-blue-400 transition-colors mt-3 mb-1">
+                  {job.title}
+                </h3>
+                <p className="text-sm text-slate-500 font-mono">{job.company_name || 'Tech Company'}</p>
+              </div>
+
+              <div className="space-y-3 mb-6 font-mono text-sm relative z-10">
+                <div className="flex items-center gap-3 text-slate-400 bg-slate-950/30 p-2 rounded border border-slate-800/50">
+                  <MapPin size={14} className="text-blue-500/70" />
+                  <span className="capitalize">{job.location_type}</span>
+                </div>
+                <div className="flex items-center gap-3 text-slate-400 bg-slate-950/30 p-2 rounded border border-slate-800/50">
+                  <Euro size={14} className="text-green-500/70" />
+                  <span>{job.salary_min / 1000}k - {job.salary_max / 1000}k</span>
+                </div>
+                
+                <div className="flex flex-wrap gap-2 mt-4 pt-2 border-t border-slate-800/50">
                   {job.junior_friendly?.mentorship && (
-                    <span className="px-2 py-1 bg-green-500/10 text-green-400 text-xs rounded-full border border-green-500/20 flex items-center gap-1">
-                      <BookOpen size={12} /> Mentorship
+                    <span className="px-2 py-1 bg-green-500/5 text-green-400 text-[10px] rounded border border-green-500/20 flex items-center gap-1 uppercase tracking-wide">
+                      <BookOpen size={10} /> Mentorship
                     </span>
                   )}
                   {job.junior_friendly?.training_budget && (
-                    <span className="px-2 py-1 bg-purple-500/10 text-purple-400 text-xs rounded-full border border-purple-500/20 flex items-center gap-1">
-                      <GraduationCap size={12} /> Training Budget
+                    <span className="px-2 py-1 bg-purple-500/5 text-purple-400 text-[10px] rounded border border-purple-500/20 flex items-center gap-1 uppercase tracking-wide">
+                      <GraduationCap size={10} /> Training
                     </span>
                   )}
                 </div>
@@ -291,9 +300,10 @@ export default function JobsPage() {
 
               <button 
                 onClick={() => setSelectedJob(job)}
-                className="w-full py-2 bg-white text-black font-bold rounded-lg hover:bg-gray-200 transition-colors"
+                className="w-full py-2.5 bg-slate-800 text-white font-mono text-sm border border-slate-700 rounded-lg hover:bg-blue-600 hover:border-blue-500 transition-all relative z-10 flex items-center justify-center gap-2 group/btn"
               >
-                Quick Apply
+                <span>apply_now()</span>
+                <ArrowRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
               </button>
             </div>
           ))}
@@ -302,25 +312,42 @@ export default function JobsPage() {
 
       {/* Quick Apply Modal */}
       {selectedJob && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-md w-full shadow-[0_0_50px_rgba(0,0,0,0.5)] animate-in zoom-in-95 duration-200 relative overflow-hidden">
+            {/* Modal Decor */}
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-purple-500"></div>
+
             <div className="flex justify-between items-start mb-6">
-              <h2 className="text-xl font-bold">Quick Apply</h2>
-              <button onClick={() => setSelectedJob(null)} className="text-gray-500 hover:text-white">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <Terminal size={20} className="text-blue-500" />
+                Initialize Application
+              </h2>
+              <button onClick={() => setSelectedJob(null)} className="text-slate-500 hover:text-white transition-colors">
                 <X size={24} />
               </button>
             </div>
 
             <div className="space-y-4 mb-8">
-              <p className="text-gray-300">
-                You are about to apply for <span className="font-semibold text-white">{selectedJob.title}</span> at <span className="font-semibold text-white">{selectedJob.company_name || 'Tech Company'}</span>.
-              </p>
-              <div className="p-4 bg-gray-800 rounded-xl border border-gray-700">
-                <p className="text-sm text-gray-400 mb-2">We will send your:</p>
-                <ul className="text-sm space-y-1">
-                  <li className="flex items-center gap-2 text-white"><CheckCircle2 size={14} className="text-blue-500" /> {userPath ? userPath.toUpperCase() : 'Tech'} Profile</li>
-                  <li className="flex items-center gap-2 text-white"><CheckCircle2 size={14} className="text-blue-500" /> Contact Info</li>
-                  <li className="flex items-center gap-2 text-white"><CheckCircle2 size={14} className="text-blue-500" /> Portfolio & Links</li>
+              <div className="font-mono text-sm text-slate-400 bg-slate-950 p-4 rounded-lg border border-slate-800">
+                <span className="text-blue-400">const</span> <span className="text-yellow-400">target</span> = <span className="text-green-400">"{selectedJob.company_name || 'Company'}"</span>;<br/>
+                <span className="text-blue-400">const</span> <span className="text-yellow-400">role</span> = <span className="text-green-400">"{selectedJob.title}"</span>;
+              </div>
+
+              <div className="p-4 bg-blue-500/5 rounded-xl border border-blue-500/10">
+                <p className="text-xs font-bold text-blue-400 uppercase tracking-widest mb-3">Payload to send</p>
+                <ul className="text-sm space-y-2 font-mono">
+                  <li className="flex items-center gap-2 text-slate-300">
+                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div> 
+                    profile_data.json
+                  </li>
+                  <li className="flex items-center gap-2 text-slate-300">
+                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                    contact_info.vcf
+                  </li>
+                  <li className="flex items-center gap-2 text-slate-300">
+                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                    portfolio_links.md
+                  </li>
                 </ul>
               </div>
             </div>
@@ -328,16 +355,16 @@ export default function JobsPage() {
             <div className="flex gap-3">
               <button 
                 onClick={() => setSelectedJob(null)}
-                className="flex-1 py-3 bg-gray-800 hover:bg-gray-700 rounded-xl font-semibold transition-colors"
+                className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-mono text-sm transition-colors"
               >
-                Cancel
+                cancel()
               </button>
               <button 
                 onClick={handleApply}
                 disabled={isApplying}
-                className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 rounded-xl font-semibold transition-colors flex justify-center items-center"
+                className="flex-1 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-mono text-sm font-bold transition-colors flex justify-center items-center shadow-lg shadow-blue-900/20"
               >
-                {isApplying ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : "Confirm Apply"}
+                {isApplying ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : "execute_apply()"}
               </button>
             </div>
           </div>

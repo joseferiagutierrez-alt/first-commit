@@ -3,7 +3,22 @@
 import { useEffect, useState, useRef } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { 
+  ArrowLeft, 
+  Terminal as TerminalIcon, 
+  Cpu, 
+  Shield, 
+  Code2, 
+  CheckCircle2, 
+  AlertCircle,
+  Play,
+  Maximize2,
+  Minus,
+  X,
+  FileCode,
+  Bug
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type TechPath = 'dev' | 'infra' | 'data' | 'design' | 'cyber' | 'qa';
 
@@ -189,93 +204,243 @@ export default function TestPage() {
     setTimeout(() => saveResult(passed, finalScore), 2000);
   };
 
-  if (loading) return <div className="min-h-screen bg-black text-white flex items-center justify-center">Loading...</div>;
+  const getTheme = () => {
+    switch(techPath) {
+        case 'infra': return { icon: TerminalIcon, color: 'text-green-500', bg: 'bg-green-500', border: 'border-green-500/30', gradient: 'from-green-500/10' };
+        case 'data': return { icon: Cpu, color: 'text-purple-500', bg: 'bg-purple-500', border: 'border-purple-500/30', gradient: 'from-purple-500/10' };
+        case 'cyber': return { icon: Shield, color: 'text-red-500', bg: 'bg-red-500', border: 'border-red-500/30', gradient: 'from-red-500/10' };
+        case 'qa': return { icon: Bug, color: 'text-orange-500', bg: 'bg-orange-500', border: 'border-orange-500/30', gradient: 'from-orange-500/10' };
+        case 'design': return { icon: FileCode, color: 'text-pink-500', bg: 'bg-pink-500', border: 'border-pink-500/30', gradient: 'from-pink-500/10' };
+        default: return { icon: Code2, color: 'text-blue-500', bg: 'bg-blue-500', border: 'border-blue-500/30', gradient: 'from-blue-500/10' };
+    }
+  };
 
+  if (loading) return (
+    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center gap-4">
+        <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-slate-500 font-mono text-sm animate-pulse">Initializing Test Environment...</p>
+    </div>
+  );
+
+  const theme = getTheme();
+  const PathIcon = theme.icon;
   const isTerminal = ['infra', 'cyber'].includes(techPath || '');
 
   return (
-    <div className="min-h-screen bg-black text-white p-6">
-      <div className="max-w-4xl mx-auto">
-        <header className="mb-8 flex items-center gap-4">
-          <button onClick={() => router.back()} className="p-2 hover:bg-gray-800 rounded-full">
-            <ArrowLeft />
-          </button>
-          <h1 className="text-3xl font-bold">
-            {isTerminal ? "Terminal Simulation Test" : "Technical Knowledge Quiz"}
-          </h1>
+    <div className="min-h-screen bg-slate-950 text-slate-200 p-6 font-mono selection:bg-slate-700 selection:text-white">
+      <div className="max-w-5xl mx-auto">
+        <header className="mb-12 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => router.back()} 
+              className="p-3 bg-slate-900 border border-slate-800 rounded-lg hover:border-slate-600 hover:text-white transition-all group"
+            >
+              <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
+            </button>
+            <div>
+              <div className="flex items-center gap-3 mb-1">
+                <div className={cn("p-1.5 rounded-md bg-slate-900 border border-slate-800", theme.color)}>
+                  <PathIcon size={18} />
+                </div>
+                <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight">
+                  SKILL_VERIFICATION<span className="text-slate-600">.exe</span>
+                </h1>
+              </div>
+              <p className="text-xs md:text-sm text-slate-500 pl-11">
+                Protocol: {isTerminal ? "TERMINAL_SIMULATION" : "KNOWLEDGE_ASSESSMENT_V2"}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4 text-xs md:text-sm bg-slate-900/50 px-4 py-2 rounded-full border border-slate-800">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+              <span className="text-emerald-500">SYSTEM_ONLINE</span>
+            </div>
+            <span className="text-slate-700">|</span>
+            <span className="text-slate-400">UID: {userId?.slice(0, 8)}...</span>
+          </div>
         </header>
 
         {isTerminal ? (
-          <div className="bg-gray-900 border border-gray-700 rounded-xl overflow-hidden shadow-2xl">
-            <div className="bg-gray-800 px-4 py-2 flex gap-2">
-              <div className="w-3 h-3 rounded-full bg-red-500"></div>
-              <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-              <div className="w-3 h-3 rounded-full bg-green-500"></div>
+          <div className="bg-slate-900 rounded-xl border border-slate-800 shadow-2xl overflow-hidden backdrop-blur-sm ring-1 ring-white/5 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            {/* Terminal Window Header */}
+            <div className="bg-slate-950 px-4 py-3 flex items-center justify-between border-b border-slate-800">
+              <div className="flex gap-2">
+                <div className="w-3 h-3 rounded-full bg-red-500/80 hover:bg-red-500 transition-colors"></div>
+                <div className="w-3 h-3 rounded-full bg-yellow-500/80 hover:bg-yellow-500 transition-colors"></div>
+                <div className="w-3 h-3 rounded-full bg-green-500/80 hover:bg-green-500 transition-colors"></div>
+              </div>
+              <div className="text-xs text-slate-500 font-mono flex items-center gap-2">
+                <TerminalIcon size={12} />
+                user@firstcommit:~/{techPath}-test
+              </div>
+              <div className="flex gap-3 text-slate-600">
+                 <Minus size={14} />
+                 <Maximize2 size={14} />
+                 <X size={14} />
+              </div>
             </div>
+
+            {/* Terminal Content */}
             <div 
               ref={terminalRef}
-              className="p-4 h-[500px] overflow-y-auto font-mono text-green-400 text-lg space-y-2"
+              className="p-6 h-[500px] overflow-y-auto font-mono text-sm md:text-base space-y-2 cursor-text"
               onClick={() => document.getElementById('terminal-input')?.focus()}
             >
               {history.map((line, i) => (
-                <div key={i} className="whitespace-pre-wrap">{line}</div>
+                <div key={i} className={cn(
+                  "whitespace-pre-wrap",
+                  line.startsWith("$") ? "text-slate-300 font-bold" : "text-slate-400",
+                  line.includes("[SUCCESS]") && "text-emerald-400",
+                  line.includes("Error") && "text-red-400"
+                )}>
+                    {line}
+                </div>
               ))}
-              <form onSubmit={handleCommand} className="flex gap-2">
-                <span>$</span>
+              <form onSubmit={handleCommand} className="flex gap-2 items-center mt-2">
+                <span className={cn("font-bold", theme.color)}>$</span>
                 <input
                   id="terminal-input"
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  className="bg-transparent outline-none flex-1 text-white"
+                  className="bg-transparent outline-none flex-1 text-slate-100 placeholder-slate-700"
                   autoFocus
                   autoComplete="off"
+                  spellCheck="false"
+                  placeholder="Wait for command..."
                 />
               </form>
+              <div className="h-4"></div>
             </div>
-            <div className="p-4 bg-gray-800 text-sm text-gray-400">
-               Current Task: {
-                 terminalStep === 0 ? "List all files (including hidden)" :
-                 terminalStep === 1 ? "Create folder 'proyectos'" :
-                 terminalStep === 2 ? "Check running processes" : "Test Completed"
-               }
+
+            {/* Terminal Footer / Status Bar */}
+            <div className="bg-slate-950 border-t border-slate-800 p-2 px-4 flex justify-between items-center text-xs font-mono">
+                <div className="flex items-center gap-2">
+                    <span className="bg-blue-600 text-white px-1.5 py-0.5 rounded-sm">NORMAL</span>
+                    <span className="text-slate-500">master*</span>
+                </div>
+                <div className="flex items-center gap-4 text-slate-400">
+                    <span className={cn(terminalStep === 0 ? "text-yellow-400 font-bold animate-pulse" : "text-emerald-500")}>
+                        1. LIST_FILES
+                    </span>
+                    <span className="text-slate-700">→</span>
+                    <span className={cn(terminalStep === 1 ? "text-yellow-400 font-bold animate-pulse" : terminalStep > 1 ? "text-emerald-500" : "")}>
+                        2. MKDIR
+                    </span>
+                    <span className="text-slate-700">→</span>
+                    <span className={cn(terminalStep === 2 ? "text-yellow-400 font-bold animate-pulse" : terminalStep > 2 ? "text-emerald-500" : "")}>
+                        3. PROCESSES
+                    </span>
+                </div>
+                <div className="text-slate-600">
+                    utf-8
+                </div>
             </div>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
+             {/* Progress Header */}
+             <div className="flex items-center justify-between mb-8 px-2">
+                <div className="text-sm text-slate-500">PROGRESS</div>
+                <div className="flex gap-1">
+                    {[0, 1, 2, 3, 4].map((i) => (
+                        <div key={i} className={cn(
+                            "h-1.5 w-8 rounded-full transition-all duration-500",
+                            answers[i] !== -1 ? theme.bg : "bg-slate-800"
+                        )} />
+                    ))}
+                </div>
+                <div className="text-sm text-slate-500">{answers.filter(a => a !== -1).length}/5</div>
+             </div>
+
             {(QUIZ_QUESTIONS[techPath as string] || QUIZ_QUESTIONS.default).map((q, idx) => (
-              <div key={q.id} className="bg-gray-900/50 p-6 rounded-xl border border-gray-800">
-                <h3 className="text-xl font-semibold mb-4">{idx + 1}. {q.text}</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {q.options.map((opt, optIdx) => (
-                    <button
-                      key={optIdx}
-                      onClick={() => {
-                        const newAnswers = [...answers];
-                        newAnswers[idx] = optIdx;
-                        setAnswers(newAnswers);
-                      }}
-                      className={`
-                        p-4 rounded-lg text-left border transition-all
-                        ${answers[idx] === optIdx 
-                          ? 'bg-blue-600 border-blue-500 text-white' 
-                          : 'bg-black border-gray-700 hover:bg-gray-800'}
-                      `}
-                    >
-                      {opt}
-                    </button>
-                  ))}
+              <div 
+                key={q.id} 
+                className={cn(
+                    "bg-slate-900/40 p-6 md:p-8 rounded-xl border border-dashed transition-all duration-300 relative group",
+                    theme.border,
+                    "hover:bg-slate-900/80 hover:shadow-xl hover:border-solid hover:scale-[1.01]"
+                )}
+              >
+                {/* Decoration: Line Number */}
+                <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-transparent via-slate-800 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                
+                <div className="flex gap-4">
+                    <div className="hidden md:flex flex-col text-right text-slate-700 select-none text-sm font-mono pt-1">
+                        <span>{idx * 10 + 1}</span>
+                        <span>{idx * 10 + 2}</span>
+                    </div>
+
+                    <div className="flex-1">
+                        <h3 className="text-lg md:text-xl font-medium mb-6 text-slate-200 flex items-start gap-2">
+                            <span className={theme.color}>// 0{idx + 1}.</span> 
+                            {q.text}
+                        </h3>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {q.options.map((opt, optIdx) => (
+                            <button
+                            key={optIdx}
+                            onClick={() => {
+                                const newAnswers = [...answers];
+                                newAnswers[idx] = optIdx;
+                                setAnswers(newAnswers);
+                            }}
+                            className={cn(
+                                "p-4 rounded-lg text-left border transition-all relative overflow-hidden group/btn",
+                                answers[idx] === optIdx 
+                                ? cn("bg-slate-800 text-white shadow-lg", theme.border)
+                                : "bg-slate-950 border-slate-800 text-slate-400 hover:bg-slate-900 hover:border-slate-700"
+                            )}
+                            >
+                            {answers[idx] === optIdx && (
+                                <div className={cn("absolute left-0 top-0 bottom-0 w-1", theme.bg)}></div>
+                            )}
+                            <div className="flex items-center gap-3">
+                                <div className={cn(
+                                    "w-5 h-5 rounded border flex items-center justify-center text-[10px]",
+                                    answers[idx] === optIdx 
+                                        ? cn(theme.bg, "border-transparent text-white") 
+                                        : "border-slate-700 text-slate-600"
+                                )}>
+                                    {String.fromCharCode(65 + optIdx)}
+                                </div>
+                                <span className="font-mono text-sm">{opt}</span>
+                            </div>
+                            </button>
+                        ))}
+                        </div>
+                    </div>
                 </div>
               </div>
             ))}
             
-            <button
-              onClick={handleQuizSubmit}
-              disabled={quizSubmitted}
-              className="w-full py-4 bg-blue-600 hover:bg-blue-700 rounded-xl font-bold text-lg transition-colors disabled:opacity-50"
-            >
-              {quizSubmitted ? "Submitting..." : "Submit Answers"}
-            </button>
+            <div className="pt-8 flex justify-end">
+                <button
+                onClick={handleQuizSubmit}
+                disabled={quizSubmitted || answers.includes(-1)}
+                className={cn(
+                    "px-8 py-4 rounded-xl font-bold text-lg transition-all flex items-center gap-3 shadow-lg",
+                    answers.includes(-1) 
+                        ? "bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700"
+                        : cn(theme.bg, "text-white hover:opacity-90 hover:scale-105 hover:shadow-xl")
+                )}
+                >
+                {quizSubmitted ? (
+                    <>
+                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        <span>COMPILING_RESULTS...</span>
+                    </>
+                ) : (
+                    <>
+                        <Play size={20} fill="currentColor" />
+                        <span>RUN_TESTS()</span>
+                    </>
+                )}
+                </button>
+            </div>
           </div>
         )}
       </div>
