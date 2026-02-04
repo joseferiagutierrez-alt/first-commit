@@ -86,6 +86,10 @@ const paths: PathOption[] = [
   },
 ];
 
+import { z } from "zod";
+
+const pathSchema = z.enum(['dev', 'infra', 'data', 'design', 'cyber', 'qa']);
+
 export default function OnboardingPage() {
   const [selectedPath, setSelectedPath] = useState<TechPath | null>(null);
   const [loading, setLoading] = useState(false);
@@ -93,6 +97,13 @@ export default function OnboardingPage() {
   const supabase = createClient();
 
   const handleSelectPath = async (pathId: TechPath) => {
+    // Validate Input
+    const validation = pathSchema.safeParse(pathId);
+    if (!validation.success) {
+        alert("Invalid selection");
+        return;
+    }
+
     setSelectedPath(pathId);
     setLoading(true);
 

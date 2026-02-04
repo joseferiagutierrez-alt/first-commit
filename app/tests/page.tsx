@@ -1,5 +1,6 @@
 "use client";
 
+import { submitTestResult } from "@/app/actions/submit-test";
 import { useEffect, useState, useRef } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
@@ -29,13 +30,29 @@ interface Question {
   correct: number;
 }
 
-const QUIZ_QUESTIONS: Record<string, Question[]> = {
+interface TerminalScenario {
+  id: string;
+  steps: {
+    instruction: string;
+    validCommands: string[];
+    successMessage: string;
+    hint: string;
+  }[];
+}
+
+// Extended Question Bank for Randomization
+const QUIZ_BANK: Record<string, Question[]> = {
   dev: [
     { id: 1, text: "What is the complexity of binary search?", options: ["O(n)", "O(log n)", "O(n^2)", "O(1)"], correct: 1 },
     { id: 2, text: "Which HTTP method is idempotent?", options: ["POST", "PUT", "PATCH", "CONNECT"], correct: 1 },
     { id: 3, text: "What does DOM stand for?", options: ["Document Object Model", "Data Object Model", "Digital Object Mode", "Document Orientation Model"], correct: 0 },
     { id: 4, text: "In React, what hook manages side effects?", options: ["useState", "useContext", "useEffect", "useReducer"], correct: 2 },
     { id: 5, text: "What is a Closure?", options: ["A function with preserved data", "A database connection", "A closing tag", "A CSS property"], correct: 0 },
+    { id: 6, text: "What is the virtual DOM?", options: ["A direct copy of the DOM", "A lightweight copy of the DOM", "A database", "A browser plugin"], correct: 1 },
+    { id: 7, text: "Which keyword declares a constant in JS?", options: ["var", "let", "const", "static"], correct: 2 },
+    { id: 8, text: "What is 'Hoisting'?", options: ["Lifting weights", "Moving declarations to top", "Deleting variables", "Hiding variables"], correct: 1 },
+    { id: 9, text: "What is a Promise?", options: ["A guarantee", "An object representing async completion", "A function", "A loop"], correct: 1 },
+    { id: 10, text: "What is JSX?", options: ["Java Syntax Extension", "JavaScript XML", "JSON XML", "Java Standard XML"], correct: 1 },
   ],
   data: [
     { id: 1, text: "Which library is standard for DataFrames?", options: ["NumPy", "Pandas", "Matplotlib", "Scikit-learn"], correct: 1 },
@@ -43,6 +60,11 @@ const QUIZ_QUESTIONS: Record<string, Question[]> = {
     { id: 3, text: "SQL command to remove duplicates?", options: ["UNIQUE", "DISTINCT", "DIFFERENT", "REMOVE"], correct: 1 },
     { id: 4, text: "Which is a supervised learning algorithm?", options: ["K-Means", "Linear Regression", "Apriori", "PCA"], correct: 1 },
     { id: 5, text: "What does ETL stand for?", options: ["Extract Transform Load", "Execute Test Load", "Extract Test Load", "Execute Transform Load"], correct: 0 },
+    { id: 6, text: "What is a Null hypothesis?", options: ["The hypothesis to be tested", "A hypothesis with no data", "A wrong hypothesis", "A hypothesis about nulls"], correct: 0 },
+    { id: 7, text: "What is Normalization?", options: ["Scaling data to 0-1", "Removing data", "Adding noise", "Sorting data"], correct: 0 },
+    { id: 8, text: "Which plot is best for distribution?", options: ["Scatter", "Histogram", "Line", "Pie"], correct: 1 },
+    { id: 9, text: "What is 'JOIN' in SQL?", options: ["Combining rows from tables", "Deleting tables", "Creating tables", "Sorting tables"], correct: 0 },
+    { id: 10, text: "What is a Tensor?", options: ["A number", "A multi-dimensional array", "A function", "A neural network"], correct: 1 },
   ],
   qa: [
     { id: 1, text: "What is Black Box Testing?", options: ["Testing internal logic", "Testing without internal knowledge", "Testing security", "Testing performance"], correct: 1 },
@@ -50,6 +72,11 @@ const QUIZ_QUESTIONS: Record<string, Question[]> = {
     { id: 3, text: "What is Regression Testing?", options: ["Testing new features", "Testing bug fixes don't break existing", "Testing performance", "Testing UI"], correct: 1 },
     { id: 4, text: "Which is a valid HTTP status for Not Found?", options: ["200", "500", "404", "403"], correct: 2 },
     { id: 5, text: "What is a Test Case?", options: ["A bug report", "A set of conditions to verify", "A test plan", "A test strategy"], correct: 1 },
+    { id: 6, text: "What is Smoke Testing?", options: ["Testing firewalls", "Preliminary testing to reveal simple failures", "Testing performance", "Testing smoke detectors"], correct: 1 },
+    { id: 7, text: "What is Selenium used for?", options: ["Unit testing", "Web browser automation", "API testing", "Mobile testing"], correct: 1 },
+    { id: 8, text: "What is a Bug Life Cycle?", options: ["Stages a bug goes through", "A biology term", "Software development cycle", "Testing cycle"], correct: 0 },
+    { id: 9, text: "Difference between Severity and Priority?", options: ["Same thing", "Impact vs Urgency", "Size vs Weight", "Color vs Shape"], correct: 1 },
+    { id: 10, text: "What is UAT?", options: ["User Acceptance Testing", "Unit Automated Testing", "User Automated Testing", "Unified Acceptance Testing"], correct: 0 },
   ],
   design: [
     { id: 1, text: "What is the Golden Ratio?", options: ["1:1.618", "1:1.5", "1:2", "1:1.414"], correct: 0 },
@@ -57,8 +84,12 @@ const QUIZ_QUESTIONS: Record<string, Question[]> = {
     { id: 3, text: "What does RGB stand for?", options: ["Red Green Blue", "Red Gold Black", "Real Graphic Base", "Red Gray Blue"], correct: 0 },
     { id: 4, text: "What is Kerning?", options: ["Line spacing", "Letter spacing between pairs", "Font size", "Paragraph spacing"], correct: 1 },
     { id: 5, text: "Primary color model for print?", options: ["RGB", "CMYK", "HEX", "HSL"], correct: 1 },
+    { id: 6, text: "What is White Space?", options: ["Empty area in design", "White color", "A mistake", "Background"], correct: 0 },
+    { id: 7, text: "What is a Wireframe?", options: ["A skeletal framework", "A final design", "A code structure", "A 3D model"], correct: 0 },
+    { id: 8, text: "What is Contrast?", options: ["Difference in visual properties", "Similarity", "Brightness", "Size"], correct: 0 },
+    { id: 9, text: "What file format supports transparency?", options: ["JPG", "PNG", "BMP", "TXT"], correct: 1 },
+    { id: 10, text: "What is Typography?", options: ["Study of maps", "Art of arranging type", "Type of photography", "Typing speed"], correct: 1 },
   ],
-  // Fallback for others if needed
   default: [
     { id: 1, text: "What is Git?", options: ["A database", "Version Control System", "IDE", "OS"], correct: 1 },
     { id: 2, text: "What port is HTTP?", options: ["80", "443", "22", "8080"], correct: 0 },
@@ -68,6 +99,55 @@ const QUIZ_QUESTIONS: Record<string, Question[]> = {
   ]
 };
 
+const TERMINAL_SCENARIOS: TerminalScenario[] = [
+  {
+    id: "basics",
+    steps: [
+      {
+        instruction: "List all files (including hidden ones).",
+        validCommands: ["ls -la", "ls -a", "ll"],
+        successMessage: "drwxr-xr-x  .config\n-rw-r--r--  .bashrc\ndrwxr-xr-x  workspace",
+        hint: "Try 'ls' with flags like -a"
+      },
+      {
+        instruction: "Create a directory named 'proyectos'.",
+        validCommands: ["mkdir proyectos", "mkdir \"proyectos\"", "mkdir 'proyectos'"],
+        successMessage: "[SUCCESS] Directory 'proyectos' created.",
+        hint: "Use 'mkdir <name>'"
+      },
+      {
+        instruction: "Check running processes.",
+        validCommands: ["ps", "ps aux", "top", "htop"],
+        successMessage: "PID TTY          TIME CMD\n123 pts/0    00:00:00 bash",
+        hint: "Try 'ps' or 'top'"
+      }
+    ]
+  },
+  {
+    id: "file_ops",
+    steps: [
+      {
+        instruction: "Print current working directory.",
+        validCommands: ["pwd"],
+        successMessage: "/home/user/workspace",
+        hint: "Command starts with 'p'"
+      },
+      {
+        instruction: "Create an empty file named 'log.txt'.",
+        validCommands: ["touch log.txt", "touch ./log.txt"],
+        successMessage: "[SUCCESS] File 'log.txt' created.",
+        hint: "Use 'touch'"
+      },
+      {
+        instruction: "Remove the file 'log.txt'.",
+        validCommands: ["rm log.txt", "rm ./log.txt"],
+        successMessage: "[SUCCESS] File 'log.txt' removed.",
+        hint: "Use 'rm'"
+      }
+    ]
+  }
+];
+
 export default function TestPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -75,12 +155,14 @@ export default function TestPage() {
   const [userId, setUserId] = useState<string | null>(null);
   
   // Terminal State
-  const [history, setHistory] = useState<string[]>(["Welcome to FirstCommit Terminal v1.0", "Type 'help' for instructions."]);
+  const [history, setHistory] = useState<string[]>(["Welcome to FirstCommit Terminal v2.0", "Type 'help' for instructions."]);
   const [input, setInput] = useState("");
-  const [terminalStep, setTerminalStep] = useState(0); // 0: ls, 1: mkdir, 2: ps
+  const [terminalStep, setTerminalStep] = useState(0); 
+  const [activeScenario, setActiveScenario] = useState<TerminalScenario>(TERMINAL_SCENARIOS[0]);
   const terminalRef = useRef<HTMLDivElement>(null);
 
   // Quiz State
+  const [activeQuestions, setActiveQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<number[]>(new Array(5).fill(-1));
   const [quizSubmitted, setQuizSubmitted] = useState(false);
 
@@ -96,7 +178,21 @@ export default function TestPage() {
       
       const { data } = await supabase.from('profiles').select('tech_path').eq('id', user.id).single();
       if (data) {
-        setTechPath(data.tech_path);
+        const path = data.tech_path;
+        setTechPath(path);
+        
+        // Randomize Quiz Questions
+        const bank = QUIZ_BANK[path as string] || QUIZ_BANK.default;
+        // Shuffle and take 5
+        const shuffled = [...bank].sort(() => 0.5 - Math.random());
+        setActiveQuestions(shuffled.slice(0, 5));
+
+        // Randomize Terminal Scenario if applicable
+        if (['infra', 'cyber'].includes(path)) {
+           const randomScenario = TERMINAL_SCENARIOS[Math.floor(Math.random() * TERMINAL_SCENARIOS.length)];
+           setActiveScenario(randomScenario);
+           setHistory(prev => [...prev, `SCENARIO: ${randomScenario.id.toUpperCase()}`, `Task 1: ${randomScenario.steps[0].instruction}`]);
+        }
       }
       setLoading(false);
     };
@@ -109,25 +205,27 @@ export default function TestPage() {
     }
   }, [history]);
 
-  const saveResult = async (passed: boolean, score: number) => {
-    if (!userId || !techPath) return;
-    const supabase = createClient();
+  // Quiz Logic
+  const handleQuizSubmit = async () => {
+    if (answers.includes(-1)) {
+      alert("Please answer all questions.");
+      return;
+    }
     
-    // 1. Save Test Result
-    await supabase.from('test_results').insert({
-      user_id: userId,
-      test_type: ['infra', 'cyber'].includes(techPath) ? 'terminal' : 'quiz',
-      score: score,
-      passed: passed,
-      details: { answers: answers, terminal_history: history.slice(-10) }
+    setQuizSubmitted(true);
+    
+    const result = await submitTestResult({
+        answers: answers,
+        questionIds: activeQuestions.map(q => q.id),
+        path: techPath as string
     });
 
-    // 2. Update Profile Verification if passed
-    if (passed) {
-      await supabase.from('profiles').update({ is_verified: true }).eq('id', userId);
+    if (result.success) {
+        setTimeout(() => router.push('/dashboard'), 2000);
+    } else {
+        alert("Submission failed: " + result.message);
+        setQuizSubmitted(false);
     }
-
-    router.push('/dashboard');
   };
 
   // Terminal Logic
@@ -142,66 +240,50 @@ export default function TestPage() {
       return;
     }
 
-    let response = "";
-    let nextStep = terminalStep;
+    const currentStepData = activeScenario.steps[terminalStep];
+    
+    if (!currentStepData) {
+        newHistory.push("Test already completed.");
+        setHistory(newHistory);
+        setInput("");
+        return;
+    }
 
-    // Challenge Logic
-    if (terminalStep === 0) {
-      if (cmd === 'ls -la' || cmd === 'ls -a' || cmd === 'll') {
-        response = "drwxr-xr-x  .config\n-rw-r--r--  .bashrc\ndrwxr-xr-x  workspace\n\n[SUCCESS] Hidden files listed.";
-        nextStep = 1;
-        newHistory.push(response);
-        newHistory.push("Next Challenge: Create a folder named 'proyectos'.");
-      } else {
-        response = "Try listing ALL files (including hidden ones).";
-        newHistory.push(response);
-      }
-    } else if (terminalStep === 1) {
-      if (cmd === 'mkdir proyectos' || cmd === 'mkdir "proyectos"' || cmd === "mkdir 'proyectos'") {
-        response = "[SUCCESS] Directory 'proyectos' created.\nNext Challenge: Check running processes.";
-        nextStep = 2;
-        newHistory.push(response);
-      } else {
-        response = "Command to create directory is incorrect. Try 'mkdir <name>'.";
-        newHistory.push(response);
-      }
-    } else if (terminalStep === 2) {
-      if (cmd.includes('ps') || cmd.includes('top') || cmd.includes('htop')) {
-        response = "PID TTY          TIME CMD\n123 pts/0    00:00:00 bash\n\n[SUCCESS] Processes listed. Test Completed!";
-        nextStep = 3;
-        newHistory.push(response);
-        setTimeout(() => saveResult(true, 100), 1500);
-      } else {
-        response = "Try 'ps' with flags or similar commands.";
-        newHistory.push(response);
-      }
+    // Check if command matches any valid commands for current step
+    const isValid = currentStepData.validCommands.some(valid => 
+        cmd === valid || (valid.endsWith('*') && cmd.startsWith(valid.slice(0, -1)))
+    );
+
+    if (isValid) {
+        newHistory.push(currentStepData.successMessage);
+        
+        const nextStepIdx = terminalStep + 1;
+        if (nextStepIdx < activeScenario.steps.length) {
+            newHistory.push(`\n[NEXT TASK]: ${activeScenario.steps[nextStepIdx].instruction}`);
+            setTerminalStep(nextStepIdx);
+        } else {
+            newHistory.push("\n[SYSTEM] All tasks completed successfully. Verifying...");
+            
+            // Server-side verification
+            setTimeout(async () => {
+                const result = await submitTestResult({
+                    answers: [],
+                    questionIds: [],
+                    path: techPath as string,
+                    terminalHistory: [...history, "Success"] // Mark as success for simple check
+                });
+                if (result.success) router.push('/dashboard');
+            }, 1500);
+            
+            setTerminalStep(nextStepIdx); // Mark as done
+        }
     } else {
-      newHistory.push("Test already completed.");
+        newHistory.push(`Command not recognized or incorrect for this task.`);
+        newHistory.push(`Hint: ${currentStepData.hint}`);
     }
 
     setHistory(newHistory);
-    setTerminalStep(nextStep);
     setInput("");
-  };
-
-  // Quiz Logic
-  const handleQuizSubmit = () => {
-    if (answers.includes(-1)) {
-      alert("Please answer all questions.");
-      return;
-    }
-    
-    const questions = QUIZ_QUESTIONS[techPath as string] || QUIZ_QUESTIONS.default;
-    let score = 0;
-    answers.forEach((ans, idx) => {
-      if (ans === questions[idx].correct) score++;
-    });
-
-    const passed = score >= 4; // 80% passing (4 out of 5)
-    const finalScore = (score / 5) * 100;
-    
-    setQuizSubmitted(true);
-    setTimeout(() => saveResult(passed, finalScore), 2000);
   };
 
   const getTheme = () => {
@@ -218,7 +300,7 @@ export default function TestPage() {
   if (loading) return (
     <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center gap-4">
         <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-slate-500 font-mono text-sm animate-pulse">Initializing Test Environment...</p>
+        <p className="text-slate-500 font-mono text-sm animate-pulse">Initializing Dynamic Test Environment...</p>
     </div>
   );
 
@@ -247,7 +329,7 @@ export default function TestPage() {
                 </h1>
               </div>
               <p className="text-xs md:text-sm text-slate-500 pl-11">
-                Protocol: {isTerminal ? "TERMINAL_SIMULATION" : "KNOWLEDGE_ASSESSMENT_V2"}
+                Protocol: {isTerminal ? "TERMINAL_SIMULATION_RANDOMIZED" : "KNOWLEDGE_ASSESSMENT_V2_DYNAMIC"}
               </p>
             </div>
           </div>
@@ -293,7 +375,8 @@ export default function TestPage() {
                   "whitespace-pre-wrap",
                   line.startsWith("$") ? "text-slate-300 font-bold" : "text-slate-400",
                   line.includes("[SUCCESS]") && "text-emerald-400",
-                  line.includes("Error") && "text-red-400"
+                  line.includes("Error") && "text-red-400",
+                  line.includes("SCENARIO:") && "text-blue-400 font-bold border-b border-blue-900 pb-2 mb-2"
                 )}>
                     {line}
                 </div>
@@ -322,17 +405,15 @@ export default function TestPage() {
                     <span className="text-slate-500">master*</span>
                 </div>
                 <div className="flex items-center gap-4 text-slate-400">
-                    <span className={cn(terminalStep === 0 ? "text-yellow-400 font-bold animate-pulse" : "text-emerald-500")}>
-                        1. LIST_FILES
-                    </span>
-                    <span className="text-slate-700">→</span>
-                    <span className={cn(terminalStep === 1 ? "text-yellow-400 font-bold animate-pulse" : terminalStep > 1 ? "text-emerald-500" : "")}>
-                        2. MKDIR
-                    </span>
-                    <span className="text-slate-700">→</span>
-                    <span className={cn(terminalStep === 2 ? "text-yellow-400 font-bold animate-pulse" : terminalStep > 2 ? "text-emerald-500" : "")}>
-                        3. PROCESSES
-                    </span>
+                    {activeScenario.steps.map((step, idx) => (
+                        <span key={idx} className={cn(
+                             idx === terminalStep ? "text-yellow-400 font-bold animate-pulse" : 
+                             idx < terminalStep ? "text-emerald-500" : ""
+                        )}>
+                            {idx + 1}. {step.instruction.split(' ')[0].toUpperCase()}
+                            {idx < activeScenario.steps.length - 1 && <span className="text-slate-700 ml-4">→</span>}
+                        </span>
+                    ))}
                 </div>
                 <div className="text-slate-600">
                     utf-8
@@ -355,7 +436,7 @@ export default function TestPage() {
                 <div className="text-sm text-slate-500">{answers.filter(a => a !== -1).length}/5</div>
              </div>
 
-            {(QUIZ_QUESTIONS[techPath as string] || QUIZ_QUESTIONS.default).map((q, idx) => (
+            {activeQuestions.map((q, idx) => (
               <div 
                 key={q.id} 
                 className={cn(
@@ -422,21 +503,17 @@ export default function TestPage() {
                 onClick={handleQuizSubmit}
                 disabled={quizSubmitted || answers.includes(-1)}
                 className={cn(
-                    "px-8 py-4 rounded-xl font-bold text-lg transition-all flex items-center gap-3 shadow-lg",
-                    answers.includes(-1) 
-                        ? "bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700"
-                        : cn(theme.bg, "text-white hover:opacity-90 hover:scale-105 hover:shadow-xl")
+                    "px-8 py-3 rounded-lg font-bold flex items-center gap-2 transition-all shadow-lg",
+                    quizSubmitted || answers.includes(-1)
+                    ? "bg-slate-800 text-slate-500 cursor-not-allowed"
+                    : cn(theme.bg, "text-white hover:opacity-90 hover:scale-105")
                 )}
                 >
                 {quizSubmitted ? (
-                    <>
-                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                        <span>COMPILING_RESULTS...</span>
-                    </>
+                    <>Processing...</>
                 ) : (
                     <>
-                        <Play size={20} fill="currentColor" />
-                        <span>RUN_TESTS()</span>
+                    Submit_Assessment() <ArrowRight size={18} />
                     </>
                 )}
                 </button>

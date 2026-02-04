@@ -13,7 +13,13 @@ import {
   Palette, 
   ShieldCheck, 
   Bug, 
-  Briefcase 
+  Briefcase,
+  ArrowRight,
+  Bot,
+  Sparkles,
+  X,
+  Loader2,
+  BrainCircuit
 } from "lucide-react";
 import Link from "next/link";
 
@@ -26,7 +32,6 @@ interface Profile {
   is_verified: boolean;
   bio: string | null;
   avatar_url: string | null;
-  // Mock field for display if not in DB
   test_score?: string; 
 }
 
@@ -71,26 +76,33 @@ export default function TalentPage() {
   const [filterPath, setFilterPath] = useState<TechPath | 'all'>('all');
   const [filterVerified, setFilterVerified] = useState(false);
 
+  // AI Generator State
+  const [showAiModal, setShowAiModal] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiStep, setAiStep] = useState(0); // 0: Input, 1: Generating, 2: Result
+  const [generatedTest, setGeneratedTest] = useState<any>(null);
+  const [activeAssessment, setActiveAssessment] = useState<any>(null);
+  
+  // AI Form State
+  const [targetStack, setTargetStack] = useState("Full Stack Development (React/Node)");
+  const [targetDifficulty, setTargetDifficulty] = useState("Senior (Architectural)");
+
   useEffect(() => {
-    const fetchCandidates = async () => {
+    const initData = async () => {
       const supabase = createClient();
       
-      // Fetch profiles
-      // In a real app, we would join with test_results to get actual scores.
-      // For this POC, we'll fetch profiles and if empty use mock data.
-      let { data: profiles, error } = await supabase
+      // Fetch Candidates
+      let { data: profilesData } = await supabase
         .from('profiles')
-        .select('id, full_name, tech_path, is_verified, bio, avatar_url');
+        .select('id, full_name, tech_path, bio, avatar_url');
 
-      if (error) {
-        console.error("Error fetching profiles:", error);
-      }
+      const profiles = profilesData?.map(profile => ({
+        ...profile,
+        is_verified: false
+      })) || [];
 
-      // If no profiles found (or only current user), let's mix in mock data for the "Company Experience"
-      // to ensure the recruiter sees a populated board.
-      const realProfiles = (profiles || []) as Profile[];
+      const realProfiles = profiles as Profile[];
       
-      // If we have very few profiles, let's add the mock ones to showcase the feature
       if (realProfiles.length < 4) {
         setCandidates([...realProfiles, ...(MOCK_CANDIDATES as Profile[])]);
       } else {
@@ -98,9 +110,25 @@ export default function TalentPage() {
       }
       
       setLoading(false);
+
+      // Fetch Active Assessment
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: assessments } = await supabase
+          .from('company_assessments')
+          .select('*')
+          .eq('company_id', user.id)
+          .eq('is_active', true)
+          .order('created_at', { ascending: false })
+          .limit(1);
+        
+        if (assessments && assessments.length > 0) {
+          setActiveAssessment(assessments[0]);
+        }
+      }
     };
 
-    fetchCandidates();
+    initData();
   }, []);
 
   const getPathIcon = (path: TechPath) => {
@@ -130,16 +158,117 @@ export default function TalentPage() {
   const handleContact = async (candidateId: string, candidateName: string) => {
     try {
       const supabase = createClient();
-      // Track the view/contact so it appears on the candidate's dashboard
       await supabase.from('profile_views').insert({
         candidate_id: candidateId,
-        company_name: "Tech Recruiter", // Simulated company name
+        company_name: "Tech Recruiter",
         viewed_at: new Date().toISOString()
       });
     } catch (err) {
       console.error("Error tracking contact:", err);
-      // Fail silently so mailto still works
     }
+  };
+
+  const handleGenerateAiTest = () => {
+    setAiLoading(true);
+    setAiStep(1);
+    
+    // Simulate AI Generation based on input
+    setTimeout(() => {
+        let title = "Custom Assessment";
+        let questions = ["General coding question 1", "General coding question 2"];
+        
+        if (targetStack.includes("React")) {
+            title = `Advanced React & System Design (${targetDifficulty.split(' ')[0]})`;
+            questions = [
+                "Explain the reconciliation process in React Fiber.",
+                "Design a scalable notification system architecture.",
+                "How would you handle race conditions in a distributed DB?"
+            ];
+        } else if (targetStack.includes("DevOps")) {
+            title = `Cloud Infrastructure & CI/CD (${targetDifficulty.split(' ')[0]})`;
+            questions = [
+                "How do you secure a Kubernetes cluster?",
+                "Write a Terraform module for an AWS VPC.",
+                "Explain the difference between Blue/Green and Canary deployments."
+            ];
+        } else if (targetStack.includes("Cyber")) {
+            title = `Penetration Testing & Security Auditing (${targetDifficulty.split(' ')[0]})`;
+            questions = [
+                "Describe how you would exploit a SQL Injection vulnerability.",
+                "How do you mitigate XSS attacks in a modern web app?",
+                "Explain the concept of Zero Trust Architecture."
+            ];
+        }
+
+        setGeneratedTest({
+            title,
+            difficulty: targetDifficulty.split(' ')[0],
+            questions,
+            type: "Mixed (Quiz + Architecture)",
+            tech_stack: targetStack
+        });
+        setAiLoading(false);
+        setAiStep(2);
+    }, 2500);
+  };
+
+  const handleDeployAssessment = async () => {
+    if (!generatedTest) return;
+
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+        alert("You must be logged in to deploy assessments.");
+        return;
+    }
+
+    try {
+        // Deactivate previous active assessments
+        await supabase
+            .from('company_assessments')
+            .update({ is_active: false })
+            .eq('company_id', user.id);
+
+        // Insert new assessment
+        const { data, error } = await supabase
+            .from('company_assessments')
+            .insert({
+                company_id: user.id,
+                title: generatedTest.title,
+                tech_stack: generatedTest.tech_stack || "General",
+                difficulty: generatedTest.difficulty,
+                questions: generatedTest.questions,
+                is_active: true
+            })
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        setActiveAssessment(data);
+        setShowAiModal(false);
+        alert("Assessment deployed successfully! It is now visible to candidates.");
+    } catch (err: any) {
+        console.error("Error deploying assessment:", err);
+        alert("Failed to deploy assessment: " + err.message);
+    }
+  };
+
+  const handleDeactivateAssessment = async () => {
+     if (!activeAssessment) return;
+     
+     const supabase = createClient();
+     try {
+         await supabase
+            .from('company_assessments')
+            .update({ is_active: false })
+            .eq('id', activeAssessment.id);
+            
+         setActiveAssessment(null);
+     } catch (err) {
+         console.error("Error deactivating:", err);
+     }
   };
 
   const filteredCandidates = candidates.filter(c => {
@@ -186,6 +315,55 @@ export default function TalentPage() {
              </button>
           </div>
         </header>
+
+        {/* Tools Section */}
+        <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+             {/* AI Test Generator Card */}
+             <div 
+                onClick={() => setShowAiModal(true)}
+                className="bg-gradient-to-br from-indigo-900/20 to-purple-900/20 border border-indigo-500/30 rounded-xl p-6 cursor-pointer hover:border-indigo-500/50 transition-all group relative overflow-hidden"
+             >
+                <div className="absolute top-0 right-0 p-3 opacity-20 group-hover:opacity-40 transition-opacity">
+                    <BrainCircuit size={64} />
+                </div>
+                <div className="flex items-start gap-4">
+                    <div className="p-3 rounded-lg bg-indigo-500/20 text-indigo-400">
+                        <Bot size={24} />
+                    </div>
+                    <div>
+                        <h3 className="text-lg font-bold text-indigo-100 flex items-center gap-2">
+                            AI Assessment Generator
+                            <span className="text-[10px] bg-indigo-500 text-white px-1.5 py-0.5 rounded-full">BETA</span>
+                        </h3>
+                        <p className="text-sm text-indigo-300/70 mt-1">
+                            Create custom technical assessments tailored to your specific stack using our AI engine.
+                        </p>
+                    </div>
+                </div>
+             </div>
+        </div>
+
+        {/* Active Assessment Banner */}
+        {activeAssessment && (
+          <div className="mb-8 p-4 bg-indigo-500/10 border border-indigo-500/30 rounded-xl flex items-center justify-between animate-in fade-in slide-in-from-top-4">
+             <div className="flex items-center gap-3">
+                <div className="p-2 bg-indigo-500/20 rounded-lg text-indigo-400">
+                   <ShieldCheck size={20} />
+                </div>
+                <div>
+                   <h3 className="text-indigo-100 font-bold text-sm">Active Assessment: {activeAssessment.title}</h3>
+                   <p className="text-indigo-400/70 text-xs">Target: {activeAssessment.difficulty} • Status: Live</p>
+                </div>
+             </div>
+             <button 
+               onClick={handleDeactivateAssessment}
+               className="p-2 hover:bg-indigo-500/20 rounded-lg text-indigo-400 transition-colors"
+               title="Deactivate Assessment"
+             >
+                <X size={16} />
+             </button>
+          </div>
+        )}
 
         {/* Filters */}
         <div className="mb-8 flex flex-wrap items-center gap-4 p-4 bg-slate-900/50 border border-slate-800 rounded-xl backdrop-blur-sm">
@@ -322,6 +500,107 @@ export default function TalentPage() {
         )}
 
       </div>
+
+      {/* AI Modal */}
+      {showAiModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+            <div className="bg-slate-900 border border-indigo-500/30 w-full max-w-lg rounded-xl shadow-2xl overflow-hidden relative animate-in fade-in zoom-in-95 duration-300">
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
+                
+                <button 
+                    onClick={() => { setShowAiModal(false); setAiStep(0); setGeneratedTest(null); }}
+                    className="absolute top-4 right-4 text-slate-400 hover:text-white"
+                >
+                    <X size={20} />
+                </button>
+
+                <div className="p-8">
+                    <div className="flex flex-col items-center mb-6">
+                        <div className="w-16 h-16 bg-indigo-500/10 rounded-full flex items-center justify-center text-indigo-400 mb-4 ring-1 ring-indigo-500/30">
+                            <Bot size={32} />
+                        </div>
+                        <h2 className="text-2xl font-bold text-white text-center">AI Test Generator</h2>
+                        <p className="text-slate-400 text-center text-sm mt-1">
+                            Generate tailored assessments for your candidates.
+                        </p>
+                    </div>
+
+                    {aiStep === 0 && (
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-mono text-slate-400 mb-2">TARGET_STACK</label>
+                                <select 
+                                    value={targetStack}
+                                    onChange={(e) => setTargetStack(e.target.value)}
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-slate-200 focus:border-indigo-500 outline-none transition-colors"
+                                >
+                                    <option>Full Stack Development (React/Node)</option>
+                                    <option>DevOps & Infrastructure</option>
+                                    <option>Cybersecurity & Pentesting</option>
+                                    <option>Data Science & ML</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-mono text-slate-400 mb-2">DIFFICULTY_LEVEL</label>
+                                <select 
+                                    value={targetDifficulty}
+                                    onChange={(e) => setTargetDifficulty(e.target.value)}
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-slate-200 focus:border-indigo-500 outline-none transition-colors"
+                                >
+                                    <option>Junior (Fundamental)</option>
+                                    <option>Mid-Level (Practical)</option>
+                                    <option>Senior (Architectural)</option>
+                                </select>
+                            </div>
+                            <button 
+                                onClick={handleGenerateAiTest}
+                                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 mt-4 transition-all"
+                            >
+                                <Sparkles size={18} />
+                                Generate Assessment
+                            </button>
+                        </div>
+                    )}
+
+                    {aiStep === 1 && (
+                        <div className="flex flex-col items-center justify-center py-8">
+                            <Loader2 size={48} className="text-indigo-500 animate-spin mb-4" />
+                            <p className="text-indigo-400 font-mono animate-pulse">Analyzing tech stack requirements...</p>
+                            <p className="text-slate-500 text-xs mt-2">Constructing questions based on industry standards</p>
+                        </div>
+                    )}
+
+                    {aiStep === 2 && generatedTest && (
+                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-lg p-4 mb-6">
+                                <h3 className="font-bold text-white mb-2">{generatedTest.title}</h3>
+                                <div className="flex gap-2 mb-4">
+                                    <span className="text-xs bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded">{generatedTest.difficulty}</span>
+                                    <span className="text-xs bg-slate-700 text-slate-300 px-2 py-0.5 rounded">{generatedTest.type}</span>
+                                </div>
+                                <ul className="space-y-2">
+                                    {generatedTest.questions.map((q: string, i: number) => (
+                                        <li key={i} className="text-sm text-slate-300 flex items-start gap-2">
+                                            <span className="text-indigo-500 font-mono">{i+1}.</span>
+                                            {q}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                            <button 
+                                onClick={handleDeployAssessment}
+                                className="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-all"
+                            >
+                                <CheckCircle2 size={18} />
+                                Deploy to Candidates
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+      )}
+
     </div>
   );
 }

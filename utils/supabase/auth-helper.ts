@@ -48,10 +48,31 @@ export const updateSession = async (request: NextRequest) => {
   ) {
     // Si no hay usuario y trata de acceder a una ruta protegida (que no sea auth o landing)
     // Redirigir a login
-    // Nota: Ajusta las rutas según tu estructura
     const url = request.nextUrl.clone();
     url.pathname = "/auth/signin";
-    return NextResponse.redirect(url);
+    
+    const redirectResponse = NextResponse.redirect(url);
+    
+    // Copiar cookies de la respuesta actual
+    const cookiesToSet = response.cookies.getAll();
+    cookiesToSet.forEach(cookie => {
+      redirectResponse.cookies.set(cookie.name, cookie.value, cookie);
+    });
+    
+    return redirectResponse;
+  }
+
+  // Si hay usuario y está en login/landing, redirigir a dashboard
+  if (user && (request.nextUrl.pathname === "/" || request.nextUrl.pathname.startsWith("/auth"))) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/dashboard";
+    const redirectResponse = NextResponse.redirect(url);
+     // Copiar cookies de la respuesta actual
+    const cookiesToSet = response.cookies.getAll();
+    cookiesToSet.forEach(cookie => {
+      redirectResponse.cookies.set(cookie.name, cookie.value, cookie);
+    });
+    return redirectResponse;
   }
 
   return response;

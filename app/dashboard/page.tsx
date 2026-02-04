@@ -24,8 +24,10 @@ import {
   Linkedin,
   Globe,
   AlertCircle,
-  MapPin
+  MapPin,
+  LogOut
 } from "lucide-react";
+import { profileSchema } from "@/lib/validators";
 
 // Types matching database
 type TechPath = 'dev' | 'infra' | 'data' | 'design' | 'cyber' | 'qa';
@@ -104,9 +106,11 @@ export default function DashboardPage() {
   }, []);
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push("/"); // Redirige al Home
-    router.refresh(); // Refresca para limpiar estado
+    if (window.confirm("¿Estás seguro de que quieres cerrar sesión?")) {
+      await supabase.auth.signOut();
+      router.push("/"); // Redirige al Home
+      router.refresh(); // Refresca para limpiar estado
+    }
   };
 
   // Función para Guardar Cambios (Incluyendo el Rol)
@@ -114,6 +118,15 @@ export default function DashboardPage() {
     setSaving(true); 
     
     if (!formData || !profile) {
+      setSaving(false);
+      return;
+    }
+
+    // Validación con Zod
+    const validationResult = profileSchema.safeParse(formData);
+    if (!validationResult.success) {
+      const errorMsg = validationResult.error.errors[0].message;
+      alert(`Error de validación: ${errorMsg}`);
       setSaving(false);
       return;
     }
@@ -144,6 +157,47 @@ export default function DashboardPage() {
         alert(`Error al guardar: ${error.message || "Inténtalo de nuevo"}`); 
     } finally { 
         setSaving(false); 
+    } 
+  };
+
+  const handleSimulateTest = async () => { 
+    if (!profile) return; 
+    const confirm = window.confirm("¿Quieres simular que apruebas el test técnico ahora mismo?"); 
+    if (!confirm) return; 
+
+    setSaving(true); 
+
+    try { 
+      // 1. Guardar el resultado del test 
+      const { error: resultError } = await supabase 
+        .from('test_results') 
+        .insert([ 
+          { 
+            user_id: profile.id, 
+            test_type: profile.tech_path || 'dev', 
+            score: 90, 
+            passed: true 
+          } 
+        ]); 
+
+      if (resultError) throw resultError; 
+
+      // 2. Actualizar el perfil a verificado 
+      const { error: profileError } = await supabase 
+        .from('profiles') 
+        .update({ is_verified: true }) 
+        .eq('id', profile.id); 
+
+      if (profileError) throw profileError; 
+
+      alert("¡Felicidades! Has aprobado el test simulado. Tu perfil ahora está verificado."); 
+      window.location.reload(); 
+
+    } catch (error: any) { 
+      console.error("Error:", error); 
+      alert("Error al guardar el test: " + error.message); 
+    } finally { 
+      setSaving(false); 
     } 
   };
 
@@ -244,7 +298,11 @@ export default function DashboardPage() {
           FirstCommit <span className="text-xs bg-slate-100 text-slate-500 px-2 py-1 rounded-full">BETA</span>
         </Link>
         <div className="flex items-center gap-4">
-            <Link href="/" className="text-sm font-medium text-slate-500 hover:text-slate-900">Ir al Inicio</Link>
+            <div className="hidden md:flex flex-col items-end mr-2">
+              <span className="text-sm font-semibold text-slate-800">{profile.full_name || 'Usuario'}</span>
+              <span className="text-xs text-slate-500 capitalize">{profile.tech_path || 'Candidato'}</span>
+            </div>
+            <Link href="/" className="text-sm font-medium text-slate-500 hover:text-slate-900 hidden sm:block">Ir al Inicio</Link>
             <button
               onClick={handleSignOut}
               className="flex items-center gap-2 text-sm text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 px-3 py-2 rounded-lg transition-colors"
@@ -401,7 +459,7 @@ export default function DashboardPage() {
                       } 
                     </div> 
                     <p className="text-gray-400 text-sm mb-6">Valida tus conocimientos en {roleData.label}. Superarla activará tu insignia de "Verificado".</p> 
-                    <button onClick={() => router.push('/tests')} disabled={profile?.is_verified} className="w-full bg-white text-black py-2 rounded-lg font-bold hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"> 
+                    <button onClick={handleSimulateTest} disabled={profile?.is_verified || saving} className="w-full bg-white text-black py-2 rounded-lg font-bold hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"> 
                       {profile?.is_verified ? "Ya estás verificado" : "Comenzar Evaluación"} 
                     </button> 
                 </div> 
