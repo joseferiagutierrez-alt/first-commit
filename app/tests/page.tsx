@@ -17,7 +17,8 @@ import {
   Minus,
   X,
   FileCode,
-  Bug
+  Bug,
+  ArrowRight
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 

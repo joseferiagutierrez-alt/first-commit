@@ -125,7 +125,7 @@ export default function DashboardPage() {
     // Validación con Zod
     const validationResult = profileSchema.safeParse(formData);
     if (!validationResult.success) {
-      const errorMsg = validationResult.error.errors[0].message;
+      const errorMsg = validationResult.error.issues[0].message;
       alert(`Error de validación: ${errorMsg}`);
       setSaving(false);
       return;
